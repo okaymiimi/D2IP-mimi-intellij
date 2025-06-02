@@ -61,55 +61,6 @@ public class Blocker {
         return blocks;
     }
 
-    public static List<Pair> matchTopKLevenshteinFallback(List<Product> products, Set<Pair> existingMatches, double threshold, int topK, int maxProducts) {
-        Set<Integer> matchedIds = new HashSet<>();
-        for (Pair p : existingMatches) {
-            matchedIds.add(p.getId1());
-            matchedIds.add(p.getId2());
-        }
-
-        List<Product> unmatched = new ArrayList<>();
-        for (Product p : products) {
-            if (!matchedIds.contains(p.id)) {
-                unmatched.add(p);
-            }
-        }
-
-        Collections.shuffle(unmatched);
-        unmatched = unmatched.subList(0, Math.min(unmatched.size(), maxProducts));
-
-        List<Pair> results = new ArrayList<>();
-        LevenshteinDistance ld = new LevenshteinDistance();
-        Set<Pair> seen = new HashSet<>();
-
-        for (Product pivot : unmatched) {
-            PriorityQueue<Product> pq = new PriorityQueue<>(Comparator.comparingDouble(p ->
-                    -levenshteinSim(pivot.title, p.title, ld)));
-
-            for (Product other : products) {
-                if (pivot.id == other.id || matchedIds.contains(other.id)) continue;
-                pq.offer(other);
-            }
-
-            int count = 0;
-            while (!pq.isEmpty() && count < topK) {
-                Product candidate = pq.poll();
-                double sim = levenshteinSim(pivot.title, candidate.title, ld);
-                if (sim >= threshold) {
-                    int id1 = Math.min(pivot.id, candidate.id);
-                    int id2 = Math.max(pivot.id, candidate.id);
-                    Pair pair = new Pair(id1, id2);
-                    if (!existingMatches.contains(pair) && seen.add(pair)) {
-                        results.add(pair);
-                    }
-                }
-                count++;
-            }
-        }
-
-        return results;
-    }
-
     private static double levenshteinSim(String s1, String s2, LevenshteinDistance ld) {
         int distance = ld.apply(s1.toLowerCase(), s2.toLowerCase());
         int maxLen = Math.max(s1.length(), s2.length());
