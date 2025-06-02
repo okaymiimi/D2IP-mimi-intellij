@@ -24,7 +24,21 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\src\main\resources\ZY2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\src\main\resources\matched_pairs.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\src\main\resources\semantic_matched_pairs.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

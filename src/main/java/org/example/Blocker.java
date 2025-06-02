@@ -115,4 +115,4 @@ public class Blocker {
         int maxLen = Math.max(s1.length(), s2.length());
         return maxLen == 0 ? 1.0 : 1.0 - ((double) distance / maxLen);
     }
-}  
+} 
