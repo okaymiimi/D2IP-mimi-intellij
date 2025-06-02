@@ -6,7 +6,7 @@ import org.example.model.Pair;
 import org.apache.commons.text.similarity.LevenshteinDistance;
 
 import java.util.*;
-import java.util.regex.Matcher;
+        import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Blocker {
@@ -35,7 +35,7 @@ public class Blocker {
         return blocks;
     }
 
-    // Alternative Blocking: alphabetische Tokens (>= 3 Buchstaben)
+    // Alternative Blocking: alphabetische Tokens (>= 4 Buchstaben)
     public static String generateAlternativeKey(String title) {
         String normalized = title.toLowerCase().replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
         List<String> parts = new ArrayList<>();
@@ -60,4 +60,4 @@ public class Blocker {
         }
         return blocks;
     }
-} 
+}
