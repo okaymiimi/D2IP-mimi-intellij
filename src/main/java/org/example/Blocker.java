@@ -60,10 +60,4 @@ public class Blocker {
         }
         return blocks;
     }
-
-    private static double levenshteinSim(String s1, String s2, LevenshteinDistance ld) {
-        int distance = ld.apply(s1.toLowerCase(), s2.toLowerCase());
-        int maxLen = Math.max(s1.length(), s2.length());
-        return maxLen == 0 ? 1.0 : 1.0 - ((double) distance / maxLen);
-    }
 } 
