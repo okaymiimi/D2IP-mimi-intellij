@@ -1,4 +1,3 @@
-// === Main.java ===
 package org.example;
 
 import com.opencsv.CSVReader;
@@ -13,21 +12,41 @@ public class Main {
     public static List<Product> loadProducts(String filePath) throws Exception {
         List<Product> products = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            reader.readLine(); // Skip header
+            String line = reader.readLine(); // header
+            if (line == null) return products;
+
+            // Expecting header: id,name,price,brand,description,category
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 2); // only split on first comma
-                if (parts.length < 2) continue;
+                // split into at most 6 parts, preserving empty strings
+                String[] parts = line.split(",", -1);
+                if (parts.length < 6) {
+                    // malformed row, skip
+                    continue;
+                }
+
                 try {
-                    products.add(new Product(Integer.parseInt(parts[0].trim()), parts[1].trim()));
-                } catch (NumberFormatException e) {
-                    // skip malformed line
+                    int id = Integer.parseInt(parts[0].trim());
+                    String name        = parts[1].trim();
+                    String price       = parts[2].trim();
+                    String brand       = parts[3].trim();
+                    String description = parts[4].trim();
+                    String category    = parts[5].trim();
+
+                    products.add(new Product(
+                            id,
+                            name,
+                            price,
+                            brand,
+                            description,
+                            category
+                    ));
+                } catch (NumberFormatException nfe) {
+
                 }
             }
         }
         return products;
     }
-
     public static List<Pair> loadGroundTruth(String filePath) throws Exception {
         List<Pair> gt = new ArrayList<>();
         try (CSVReader reader = new CSVReader(new FileReader(filePath))) {
@@ -47,61 +66,31 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        String productFile = "src/main/resources/Z1_update.csv";
-        String groundTruthFile = "src/main/resources/ZY1_update.csv";
+        String productFile = "src/main/resources/Z2.csv";
+        String groundTruthFile = "src/main/resources/ZY2.csv";
 
         List<Product> products = loadProducts(productFile);
         List<Pair> groundTruth = loadGroundTruth(groundTruthFile);
 
-        Map<String, List<Integer>> blocks = Blocker.createBlocks(products);
-
-        System.out.println("------------- BEST COMBINED EVALUATION (Multi-Key Blocking) -------------");
+        System.out.println("------------- COMBINED BLOCKING + MATCHING -------------");
         long start = System.currentTimeMillis();
-        List<Pair> combinedMatches = Matcher.generateMatches(blocks, products, 0.63, Matcher.SimilarityType.COMBINED);
+
+        Map<String, List<Integer>> combinedBlocks = Blocker.createCombinedBlocks(products);
+        List<Pair> matches = Matcher.generateMatches(combinedBlocks, products, 0.5, Matcher.SimilarityType.COMBINED);
+
         long end = System.currentTimeMillis();
-
         System.out.printf("Runtime: %.2f seconds\n", (end - start) / 1000.0);
-        Evaluator.evaluate(combinedMatches, groundTruth);
 
-        // === Second Run with Alternative Blocking ===
-        System.out.println("\n--- Second Run with Alternative Blocking on unmatched products ---");
-        Set<Pair> matchSet = new HashSet<>(combinedMatches);
-        Set<Integer> matchedIds = new HashSet<>();
-        for (Pair p : combinedMatches) {
-            matchedIds.add(p.getId1());
-            matchedIds.add(p.getId2());
-        }
+        Evaluator.evaluate(matches, groundTruth);
 
-        List<Product> unmatchedProducts = new ArrayList<>();
-        for (Product p : products) {
-            if (!matchedIds.contains(p.id)) {
-                unmatchedProducts.add(p);
-            }
-        }
-
-        long altStart = System.currentTimeMillis();
-        Map<String, List<Integer>> altBlocks = Blocker.createAlternativeBlocks(unmatchedProducts);
-        List<Pair> secondMatches = Matcher.generateMatches(altBlocks, unmatchedProducts, 0.6, Matcher.SimilarityType.COMBINED);
-        long altEnd = System.currentTimeMillis();
-
-        System.out.printf("Alternative matching runtime: %.2f seconds\n", (altEnd - altStart) / 1000.0);
-        System.out.println("Alternative matches found: " + secondMatches.size());
-
-        matchSet.addAll(secondMatches);
-        List<Pair> finalMatches = new ArrayList<>(matchSet);
-
-        System.out.println("\n--- Final Evaluation inkl. Second Run ---");
-        Evaluator.evaluate(finalMatches, groundTruth);
-
-        // === Export finaler Matches ===
+        // Export matches
         try (PrintWriter writer = new PrintWriter(new FileWriter("src/main/resources/matched_pairs.csv"))) {
             writer.println("id1,id2");
-            for (Pair pair : finalMatches) {
+            for (Pair pair : matches) {
                 writer.printf("%d,%d%n", pair.getId1(), pair.getId2());
             }
-            System.out.println("✅ Matches wurden exportiert nach src/main/resources/matched_pairs.csv");
         } catch (Exception e) {
-            System.err.println("❌ Fehler beim Schreiben der CSV: " + e.getMessage());
+            System.err.println("Fehler beim Schreiben der CSV: " + e.getMessage());
         }
     }
 }
