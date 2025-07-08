@@ -5,6 +5,7 @@ import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.example.model.Pair;
 import org.example.model.Product;
 
+import java.text.Normalizer;
 import java.util.*;
 
 public class Matcher {
@@ -25,12 +26,13 @@ public class Matcher {
                     for (int j = i + 1; j < rowIds.size(); j++) {
                         Product p1 = products.get(rowIds.get(i));
                         Product p2 = products.get(rowIds.get(j));
-
+                        String text1 = (p1.name + " " + p1.price + " " + p1.brand + " " + p1.description +" "+ p1.category).toLowerCase(Locale.ROOT);
+                        String text2 = (p2.name + " " + p2.price + " " + p2.brand + " " + p2.description +" "+ p2.category).toLowerCase(Locale.ROOT);
                         double sim = switch (simType) {
-                            case LEVENSHTEIN -> levenshteinSimilarity(p1.title, p2.title);
-                            case COMBINED -> 0.7 * jaccardSimilarity(p1.title, p2.title)
-                                    + 0.3 * levenshteinSimilarity(p1.title, p2.title);
-                            default -> jaccardSimilarity(p1.title, p2.title);
+                            case LEVENSHTEIN -> levenshteinSimilarity(text1, text2);
+                            case COMBINED -> 0.7 * jaccardSimilarity(text1, text2)
+                                    + 0.3 * levenshteinSimilarity(text1, text2);
+                            default -> jaccardSimilarity(text1, text2);
                         };
 
                         if (sim >= threshold) {
@@ -62,13 +64,22 @@ public class Matcher {
     }
 
     public static double levenshteinSimilarity(String s1, String s2) {
+        s1 = normalize(s1);
+        s2 = normalize(s2);
+
         LevenshteinDistance ld = new LevenshteinDistance();
-        int distance = ld.apply(s1.toLowerCase(), s2.toLowerCase());
+        int distance = ld.apply(s1, s2);
         int maxLen = Math.max(s1.length(), s2.length());
         return maxLen == 0 ? 1.0 : 1.0 - ((double) distance / maxLen);
     }
 
+
     private static String normalize(String s) {
-        return s.toLowerCase().replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
+        return Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("[\\p{InCombiningDiacriticalMarks}]", "") // é -> e
+                .replaceAll("[^a-z0-9 ]", " ")                         // nur a-z, 0-9 und Leerzeichen
+                .replaceAll("\\s+", " ")                               // mehrfach-Whitespace reduzieren
+                .toLowerCase()
+                .trim();
     }
 }
